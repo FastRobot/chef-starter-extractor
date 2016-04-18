@@ -3,7 +3,7 @@
 ##
 ## John Cook, jcook@fastrobot.com
 
-require 'FileUtils'
+require 'fileutils'
 require 'openssl'
 require 'nokogiri'
 require 'httpclient'
