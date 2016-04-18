@@ -3,6 +3,7 @@
 ##
 ## John Cook, jcook@fastrobot.com
 
+require 'FileUtils'
 require 'openssl'
 require 'nokogiri'
 require 'httpclient'
@@ -13,11 +14,23 @@ chef_server_url = args[0] #'https://ec2-52-9-121-235.us-west-1.compute.amazonaws
 org = args[1]             #'testorg'
 username = args[2]        #'chefuser'
 password = args[3]        #'chefpass'
+instance_id = args[4]     #Instance_id of the Chef-Server to use
 
 ##
-# Create client and set SSL config to FALSE
+# Create client set SSL config to FALSE
 client = HTTPClient.new
 client.ssl_config.verify_mode = OpenSSL::SSL::VERIFY_NONE
+# Now create the cookie jar and tell the client to use it
+FileUtils.touch('/tmp/cookie.dat')
+client.set_cookie_store('/tmp/cookie.dat')
+
+#
+## Are we running a marketplace ami?  Post the instacne_id
+unless instance_id.to_s == ''
+  homepage = Nokogiri::HTML(client.get_content(chef_server_url))
+  data = [['uuid',instance_id]]
+  client.post("#{chef_server_url}/biscotti",data)
+end
 
 ##
 # Grab chef_server_url login page to parse csrf-tokens
@@ -32,12 +45,6 @@ form_tokens = Array.new
 login.xpath('//form/input').each do |i|
   form_tokens << i['value'] if i['name'] == 'authenticity_token'
 end
-
-# puts "CSRF Token: #{csrf_token}"
-# puts "Form Tokens: "
-# form_tokens.each do |f|
-#   puts f
-# end
 
 ##
 ## Build post request to login to our new Chef-Server
